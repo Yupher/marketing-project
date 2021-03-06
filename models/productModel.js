@@ -33,7 +33,7 @@ const productSchema = new mongoose.Schema({
   },
   user: {
     type: mongoose.Schema.ObjectId,
-    ref: "User",
+    ref: "vendor",
     required: [true, "Review must belong to a user"],
   },
   slug: String,
@@ -76,11 +76,9 @@ const productSchema = new mongoose.Schema({
   },
   categories: [
     {
-      category: {
-        type: mongoose.Schema.ObjectId,
-        ref: "category",
-        required: [true, "A product must have a category"],
-      },
+      type: mongoose.Schema.ObjectId,
+      ref: "category",
+      required: [true, "A product must have a category"],
     },
   ],
   tags: {
@@ -100,11 +98,8 @@ productSchema.index({ price: 1, ratingsAverage: -1 });
 productSchema.index({ slug: 1 });
 
 productSchema.pre(/^find/, function (next) {
-  this.populate({
-    path: "user",
-  });
-  this.populate("categories.category");
-  this.populate("categories.caregory");
+  this.populate("user");
+  this.populate("categories");
   next();
 });
 

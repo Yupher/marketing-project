@@ -1,6 +1,7 @@
 const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
 const UserModel = require("./../models/userModel");
+const vendorModel = require("../models/vendorModel");
 const cartModel = require("../models/cartModel");
 const wishListModel = require("../models/whishListModel");
 const catchAsync = require("./../utils/catchAsync");
@@ -42,24 +43,15 @@ const createSendToken = (user, statusCode, req, res) => {
   });
 };
 
-//signupp new user
+//signup new user
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await UserModel.create({
     name: req.body.name,
     email: req.body.email,
-    role: req.body && req.body.role === "vendor" ? "vendor" : "client",
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
   });
 
-  if (req.body && req.body.role === "vendor") {
-    let newSub = await subscriptionModel.create({
-      user: newUser._id,
-    });
-    await UserModel.findByIdAndUpdate(newUser._id, {
-      subscription: newSub._id,
-    });
-  }
   await wishListModel.create({ user: newUser._id });
   await cartModel.create({ user: newUser._id });
   const url = `${req.protocol}://${req.get("host")}/me`;
@@ -67,6 +59,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   createSendToken(newUser, 201, req, res);
 });
 
+//user login
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -94,6 +87,55 @@ exports.logout = (req, res) => {
   res.status(200).json({ status: "success" });
 };
 
+//vendor Signup
+exports.vendorSignup = catchAsync(async (req, res, next) => {
+  const newVendor = await vendorModel.create({
+    name: req.body.name,
+    email: req.body.email,
+    password: req.body.password,
+    passwordConfirm: req.body.passwordConfirm,
+  });
+
+  let newSub = await subscriptionModel.create({
+    vendor: newVendor._id,
+  });
+  await vendorModel.findByIdAndUpdate(newVendor._id, {
+    subscription: newSub._id,
+  });
+
+  //create a whislist for this user
+  await wishListModel.create({ user: newVendor._id });
+
+  //create a cart for this user
+  await cartModel.create({ user: newVendor._id });
+
+  const url = `${req.protocol}://${req.get("host")}/me`;
+  //console.log(newVendor);
+
+  //console.log(url);
+  createSendToken(newVendor, 201, req, res);
+});
+
+//vendor login
+exports.vendorLogin = catchAsync(async (req, res, next) => {
+  const { email, password } = req.body;
+
+  // 1) Check if email and password exist
+  if (!email || !password) {
+    return next(new AppError("Please provide email and password!", 400));
+  }
+  // 2) Check if user exists && password is correct
+  const vendor = await vendorModel.findOne({ email }).select("+password");
+
+  if (!vendor || !(await vendor.correctPassword(password, vendor.password))) {
+    return next(new AppError("Incorrect email or password", 401));
+  }
+
+  // 3) If everything ok, send token to client
+  createSendToken(vendor, 200, req, res);
+});
+
+// user protected routes access
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting token and check of it's there
   let token;
@@ -116,7 +158,10 @@ exports.protect = catchAsync(async (req, res, next) => {
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
   // 3) Check if user still exists
-  const currentUser = await UserModel.findById(decoded.id);
+  const currentUser =
+    (await UserModel.findById(decoded.id)) ||
+    (await vendorModel.findById(decoded.id));
+
   if (!currentUser) {
     return next(
       new AppError(
@@ -125,11 +170,10 @@ exports.protect = catchAsync(async (req, res, next) => {
       )
     );
   }
-  //check if vendor subscription is valid
-
-  if (currentUser.role === "vendor") {
-
-    let subsData = await subscriptionModel.findOne({ user: currentUser._id });
+  //4) check if vendor subscription is valid
+  if (currentUser.subscription) {
+    let subsData = await subscriptionModel.findOne({ vendor: currentUser._id });
+    //check if subscription exist in database
     if (!subsData) {
       return next(new AppError("No subscription fond with this user"));
     }
@@ -148,9 +192,6 @@ exports.protect = catchAsync(async (req, res, next) => {
     } else {
       currentUser.isValid = false;
     }
-
-
-
   }
 
   // GRANT ACCESS TO PROTECTED ROUTE
@@ -183,10 +224,10 @@ exports.permitedTo = (Model, params) =>
     } else {
       id = req.params.id;
     }
-
     const data = await Model.findById(id);
+
     if (!data) {
-      return next(new AppError("Model not found", 404));
+      return next(new AppError("Data requested not found", 404));
     }
 
     if (

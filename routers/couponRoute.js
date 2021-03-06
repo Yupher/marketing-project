@@ -8,6 +8,7 @@ router.use(authController.protect);
 
 router
   .route("/")
+  // just for developers this must be deleted when deploying
   .get(
     authController.protect,
     authController.restrictTo("admin"),
@@ -21,24 +22,19 @@ router
     couponController.createCoupon
   );
 
-
 router
   .route("/me")
   .get(
     authController.protect,
     authController.restrictTo("vendor"),
     couponController.getVendorCoupon
-  )
-
-
-
+  );
 
 router
   .route("/:id")
   .get(
     authController.protect,
     authController.restrictTo("vendor"),
-
     authController.permitedTo(couponModel),
     couponController.getCoupon
   )

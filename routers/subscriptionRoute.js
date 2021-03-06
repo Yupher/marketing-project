@@ -13,6 +13,7 @@ router
     subscriptionController.getAllSubscriptions
   )
   .patch(
+    //request for subscription
     authController.protect,
     authController.restrictTo("vendor"),
     subscriptionController.requestSubscription
@@ -41,11 +42,7 @@ router
     subscriptionController.getSubscription
   )
   .patch(
-    authController.protect,
-    authController.restrictTo("admin"),
-    subscriptionController.subsRequestProcessing
-  )
-  .delete(
+    //admin accept or reject a subscrption
     authController.protect,
     authController.restrictTo("admin"),
     subscriptionController.subsRequestProcessing

@@ -7,6 +7,11 @@ const vendorSchema = new mongoose.Schema({
     type: String,
     required: [true, "Please tell us your name!"],
   },
+  role: {
+    type: String,
+    enum: ["vendor"],
+    default: "vendor",
+  },
   email: {
     type: String,
     required: [true, "Please provide your email"],

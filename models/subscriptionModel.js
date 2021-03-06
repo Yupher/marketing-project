@@ -11,9 +11,9 @@ const subscriptionSchema = new mongoose.Schema({
     type: mongoose.Schema.ObjectId,
     ref: "User",
   },
-  user: {
+  vendor: {
     type: mongoose.Schema.ObjectId,
-    ref: "User",
+    ref: "vendor",
   },
   allTime: {
     type: Number,

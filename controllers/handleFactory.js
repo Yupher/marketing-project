@@ -1,6 +1,7 @@
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
 const userModel = require("../models/userModel");
+const categoryModel = require("../models/categoryModel");
 const APIFeatures = require("./../utils/apiFeatures");
 
 exports.getAll = (Model, params) =>
@@ -28,7 +29,7 @@ exports.getAll = (Model, params) =>
 
       doc.forEach((elm) => {
         let subsData = elm.user.subscription;
-
+        console.log(subsData);
         let lastAddedPeriodInMilliseconds = subsData.lastAddedPeriod * 86400000;
         let lastActivationDate = subsData.activationDate
           ? Date.parse(subsData.activationDate)
@@ -38,7 +39,6 @@ exports.getAll = (Model, params) =>
           activeProds.push(elm);
         }
       });
-
       doc = activeProds;
     }
 
@@ -70,16 +70,15 @@ exports.createOne = (Model, params) =>
       warning = "Max tags is 3";
     }
     if (params && params.checkCategory) {
-      if (!req.body.categories) {
+      let categoryData = await categoryModel.findById(req.body.categories);
+      if (!req.body.categories || !categoryData) {
         return next(new AppError("A product must have a Category", 404));
       }
     }
 
-
     if (params && params.addProduct) {
       req.body.product = req.params.id;
     }
-
 
     const doc = await Model.create(req.body);
 

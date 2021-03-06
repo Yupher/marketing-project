@@ -3,13 +3,13 @@ const mongoose = require("mongoose");
 const couponSchema = new mongoose.Schema({
   code: {
     type: String,
-    required: [true, "please tell us Promo name"],
+    required: [true, "Please tell us Promo name."],
     unique: true,
   },
   user: {
     type: mongoose.Schema.ObjectId,
-    ref: "User",
-    required: [true, "discount must belong to a user"],
+    ref: "vendor",
+    required: [true, "Discount must belong to a user."],
   },
   used: {
     type: Boolean,

@@ -13,9 +13,8 @@ exports.updateCoupon = factory.updateOne(couponModel);
 
 exports.deleteCoupon = factory.deleteOne(couponModel);
 
-
 exports.couponInfoValidation = catchAsync(async (req, res, next) => {
-  let { discount, period, code } = req.body;
+  let { discount, period } = req.body;
   let daysInMiliseconds;
 
   if (period) {
@@ -25,7 +24,6 @@ exports.couponInfoValidation = catchAsync(async (req, res, next) => {
     if (daysInMiliseconds - Date.now() <= 0) {
       return next(new AppError("period of days is not valid", 404));
     }
-
   }
 
   //value must be between 1% and 99%
@@ -33,20 +31,16 @@ exports.couponInfoValidation = catchAsync(async (req, res, next) => {
     return next(new AppError("please give us a valid information", 404));
   }
 
-
   next();
 });
 
-
 exports.getVendorCoupon = catchAsync(async (req, res, next) => {
-
   const couponData = await couponModel.find({ user: req.user._id });
 
   //check if order exist in data base
   if (!couponData) {
-    return next(new AppError("You do not have any orders", 404));
+    return next(new AppError("You do not have any coupons.", 404));
   }
-
 
   return res.status(200).json({
     success: true,
@@ -54,4 +48,3 @@ exports.getVendorCoupon = catchAsync(async (req, res, next) => {
     couponData,
   });
 });
-

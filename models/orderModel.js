@@ -31,7 +31,7 @@ const orderSchema = new mongoose.Schema({
   },
   addedBy: {
     type: mongoose.Schema.ObjectId,
-    ref: "User",
+    ref: "vendor",
     reqyuired: [true, "vendor who added this product is required"],
   },
   createdAt: {
@@ -52,11 +52,10 @@ const orderSchema = new mongoose.Schema({
 orderSchema.pre(/^find/, function (next) {
   this.populate("coupon");
   this.populate("product");
-  this.populate("User");
+  this.populate("user");
+  // this.populate("addedBy");
   next();
 });
-
-
 
 orderSchema.pre("save", async function (next) {
   let productData = await productModel.findById(this.product);
@@ -67,18 +66,23 @@ orderSchema.pre("save", async function (next) {
   }
 
   //checking the quantity of the product
-  if (productData && productData.quantity <= 0) {
+  if (productData.quantity <= 0) {
     return next(new AppError("we ran out of this product", 404));
   }
 
+  console.log(productData.user._id);
 
   this.price = productData.price * this.quantity;
   this.priceAfterDiscount = this.price;
   this.shipping = productData.shipping;
-  this.addedBy = productData.user;
+  this.addedBy = productData.user._id;
 
   //checking if the product has discount
-  if (productData.priceDiscount && productData.priceDiscount.period && productData.priceDiscount.value) {
+  if (
+    productData.priceDiscount &&
+    productData.priceDiscount.period &&
+    productData.priceDiscount.value
+  ) {
     let { period, value, createdAt } = productData.priceDiscount;
     let periodMiliseconds = Date.parse(createdAt) + period * 86400000;
 
@@ -86,9 +90,7 @@ orderSchema.pre("save", async function (next) {
       this.discount = value;
       this.priceAfterDiscount = this.price * (1 - value / 100);
     }
-
   }
-
 
   //checking if the user has coupon
 
@@ -97,7 +99,6 @@ orderSchema.pre("save", async function (next) {
   if (this.coupon && !couponData) {
     return next(new AppError("this coupon is not valid."));
   } else if (couponData) {
-
     let { createdAt, used, period, discount, user } = couponData;
 
     // check it's own coupon
@@ -113,8 +114,7 @@ orderSchema.pre("save", async function (next) {
       );
     }
 
-
-    // check expired coupon 
+    // check expired coupon
     if (periodMiliseconds < Date.now()) {
       return next(new AppError("Coupon has expired.", 404));
     }
@@ -128,13 +128,11 @@ orderSchema.pre("save", async function (next) {
 
     couponData.used = true;
     await couponData.save();
-
   }
 
+  this.totalAmount =
+    Math.round((this.priceAfterDiscount + this.shipping) * 100) / 100;
 
-
-
-  this.totalAmount = this.priceAfterDiscount + this.shipping;
   productData.quantity = productData.quantity - this.quantity;
   await productData.save();
 

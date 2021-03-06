@@ -25,10 +25,8 @@ router
   .get(
     authController.protect,
     authController.restrictTo("vendor"),
-    orderController.getVendorOrders(productModel)
+    orderController.getVendorOrders
   );
-
-
 
 // This route is exclusif to admins
 router
@@ -44,6 +42,5 @@ router
     authController.restrictTo("admin"),
     orderController.deleteOrder
   );
-
 
 module.exports = router;

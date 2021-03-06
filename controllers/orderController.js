@@ -8,7 +8,7 @@ exports.getAllOrders = factory.getAll(orderModel);
 exports.getOrder = factory.getOne(orderModel);
 
 exports.createOrder = factory.createOne(orderModel, {
-  addUser: true
+  addUser: true,
 });
 
 exports.updateOrder = factory.updateOne(orderModel);
@@ -24,27 +24,23 @@ exports.checkIfProductExist = (Model) =>
       return next(new AppError("Product not found.", 404));
     }
     //check for product quantity
-    if (data && req.body.quantity > data.quantity) {
+    if (req.body.quantity > data.quantity) {
       return next(new AppError("We ran out of this product.", 404));
     }
     next();
   });
 
-exports.getVendorOrders = (Model) => {
-  return catchAsync(async (req, res, next) => {
+exports.getVendorOrders = catchAsync(async (req, res, next) => {
+  const orderData = await orderModel.find({ addedBy: req.user._id });
 
-    const orderData = await orderModel.find({ addedBy: req.user._id });
+  //check if order exist in data base
+  if (!orderData) {
+    return next(new AppError("You do not have any orders", 404));
+  }
 
-    //check if order exist in data base
-    if (!orderData) {
-      return next(new AppError("You do not have any orders", 404));
-    }
-
-
-    return res.status(200).json({
-      success: true,
-      results: orderData.length,
-      orderData,
-    });
+  return res.status(200).json({
+    success: true,
+    results: orderData.length,
+    orderData,
   });
-};
+});

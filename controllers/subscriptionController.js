@@ -16,8 +16,7 @@ exports.deleteSubscription = factory.deleteOne(subscriptionModel);
 //request subscription
 
 exports.requestSubscription = catchAsync(async (req, res, next) => {
-  let subData = await subscriptionModel.findOne({ user: req.user._id });
-
+  let subData = await subscriptionModel.findOne({ vendor: req.user._id });
   //check if subscription exists in data base
   if (!subData) {
     return next(new AppError("Subscription document does not exist.", 404));
@@ -25,7 +24,12 @@ exports.requestSubscription = catchAsync(async (req, res, next) => {
 
   //check if subs exists in data base
   if (subData.waitingForAccept) {
-    return next(new AppError("Sorry, Your request is already being processed, an administrator will see it soon.", 404));
+    return next(
+      new AppError(
+        "Sorry, Your request is already being processed, an administrator will see it soon.",
+        404
+      )
+    );
   }
 
   //check if user enterd a period of subscription
@@ -46,12 +50,16 @@ exports.requestSubscription = catchAsync(async (req, res, next) => {
     waitingForAccept: true,
     requestDate: Date.now(),
     requestPeriod: period,
-    newSubscriber: !subData.newSubscriber && subData.newSubscriber !== false ? true : false,
+    newSubscriber:
+      !subData.newSubscriber && subData.newSubscriber !== false ? true : false,
   };
 
-  await subscriptionModel.findOneAndUpdate({ user: req.user._id }, subRequest);
+  await subscriptionModel.findOneAndUpdate(
+    { vendor: req.user._id },
+    subRequest
+  );
 
-  let newSubRequest = await subscriptionModel.findOne({ user: req.user._id });
+  let newSubRequest = await subscriptionModel.findOne({ vendor: req.user._id });
 
   return res.status(200).json({
     success: true,
@@ -60,9 +68,6 @@ exports.requestSubscription = catchAsync(async (req, res, next) => {
 });
 
 exports.subsRequestProcessing = catchAsync(async (req, res, next) => {
-
-
-
   let subsData = await subscriptionModel.findById(req.params.id);
 
   //check if subs exists in data base
@@ -81,7 +86,6 @@ exports.subsRequestProcessing = catchAsync(async (req, res, next) => {
       new AppError("Please select an option(accepted or rejected).", 404)
     );
   }
-
 
   //check if subs exists in data base
   if (!subsData.waitingForAccept) {
@@ -120,7 +124,6 @@ exports.subsRequestProcessing = catchAsync(async (req, res, next) => {
   await subscriptionModel.findByIdAndUpdate(req.params.id, processedSub);
   let updatedSubs = await subscriptionModel.findById(req.params.id);
 
-
   return res.status(200).json({
     success: true,
     result: updatedSubs,
@@ -128,20 +131,17 @@ exports.subsRequestProcessing = catchAsync(async (req, res, next) => {
 });
 
 exports.abortSubscription = catchAsync(async (req, res, next) => {
-  let subsData = await subscriptionModel.findOne({ user: req.user._id });
+  let subsData = await subscriptionModel.findOne({ vendor: req.user._id });
 
   //check if subs exists in data base
   if (!subsData) {
     return next(new AppError("Subscription document does not exist.", 404));
   }
 
-
-
   //check if the user subs is valid or not
   if (!req.user.isValid) {
     return next(new AppError("You didn't activate you subscription yet.", 404));
   }
-
 
   let abortedSub = {
     allAborts: subsData.allAborts + 1,
@@ -151,10 +151,11 @@ exports.abortSubscription = catchAsync(async (req, res, next) => {
     waitingForAccept: false,
   };
 
-
-
-  await subscriptionModel.findOneAndUpdate({ user: req.user._id }, abortedSub);
-  let updatedSubs = await subscriptionModel.findOne({ user: req.user._id });
+  await subscriptionModel.findOneAndUpdate(
+    { vendor: req.user._id },
+    abortedSub
+  );
+  let updatedSubs = await subscriptionModel.findOne({ vendor: req.user._id });
 
   return res.status(200).json({ success: true, result: updatedSubs });
 });
