@@ -3,6 +3,9 @@ const AppError = require("./../utils/appError");
 const userModel = require("../models/userModel");
 const categoryModel = require("../models/categoryModel");
 const APIFeatures = require("./../utils/apiFeatures");
+const productModel = require("../models/productModel");
+const reviewModel = require("../models/reviewModel");
+const vendorModel = require("../models/vendorModel");
 
 exports.getAll = (Model, params) =>
   catchAsync(async (req, res, next) => {
@@ -29,7 +32,6 @@ exports.getAll = (Model, params) =>
 
       doc.forEach((elm) => {
         let subsData = elm.user.subscription;
-        console.log(subsData);
         let lastAddedPeriodInMilliseconds = subsData.lastAddedPeriod * 86400000;
         let lastActivationDate = subsData.activationDate
           ? Date.parse(subsData.activationDate)
@@ -80,8 +82,36 @@ exports.createOne = (Model, params) =>
       req.body.product = req.params.id;
     }
 
+    //check if vendor is reviewing its own product which he can't
+    if (params && params.checkReview) {
+      let productData = await productModel.findById(req.params.id);
+      if (!productData) {
+        return next(new AppError("Product not found", 404));
+      }
+
+      if (productData.user._id.toString() === req.user._id.toString()) {
+        return next(new AppError("You can not review your own product", 404));
+      }
+    }
+    //populate user in review
+    if (params && params.populateUser) {
+      let userData =
+        (await userModel.findById(req.user._id)) ||
+        (await vendorModel.findById(req.user._id));
+      if (!userData) {
+        return next(new AppError("User not found", 404));
+      }
+      req.body.user = userData;
+    }
+
     const doc = await Model.create(req.body);
 
+    //add review to product
+    if (params && params.addReviewToProduct) {
+      let productData = await productModel.findById(req.params.id);
+      productData.reviews.push(doc._id);
+      await productData.save();
+    }
     res.status(201).json({
       status: "success",
       warning,
@@ -122,7 +152,6 @@ exports.updateOne = (Model) =>
       new: true,
       runValidators: true,
     });
-
     if (!doc) {
       return next(new AppError("No document found with that ID", 404));
     }

@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
-const review = require("./reviewModel");
+const reviewModel = require("./reviewModel");
 // const User = require('./userModel');
 // const validator = require('validator');
 
@@ -37,12 +37,16 @@ const productSchema = new mongoose.Schema({
     required: [true, "Review must belong to a user"],
   },
   slug: String,
+  reviews: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "review",
+    },
+  ],
   ratingsAverage: {
     type: Number,
     default: 4.5,
-    min: [1, "Rating must be above 1.0"],
-    max: [5, "Rating must be below 5.0"],
-    set: (val) => Math.round(val * 10) / 10, // 4.666666, 46.6666, 47, 4.7
+    set: (val) => Math.round(val * 10) / 10,
   },
   ratingsQuantity: {
     type: Number,
@@ -92,6 +96,10 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: Date.now(),
   },
+  active: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 productSchema.index({ price: 1, ratingsAverage: -1 });
@@ -100,12 +108,14 @@ productSchema.index({ slug: 1 });
 productSchema.pre(/^find/, function (next) {
   this.populate("user");
   this.populate("categories");
+  this.populate("reviews");
   next();
 });
 
 // DOCUMENT MIDDLEWARE: runs before .save() and .create()
 productSchema.pre("save", async function (next) {
   this.slug = slugify(this.name, { lower: true });
+
   next();
 });
 

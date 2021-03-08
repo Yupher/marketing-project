@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const slugify = require('slugify')
+const slugify = require("slugify");
 
 const categorySchema = new mongoose.Schema({
   createdAt: {
@@ -16,9 +16,10 @@ const categorySchema = new mongoose.Schema({
     type: String,
     required: [true, "Please give the category name"],
   },
-  description:String,
+  description: String,
   active: {
     type: String,
+    default: true,
   },
 });
 categorySchema.pre(/^find/, function (next) {

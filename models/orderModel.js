@@ -47,6 +47,11 @@ const orderSchema = new mongoose.Schema({
     required: [true, "you must provide a shipping adress"],
   },
   adressLastLine: String,
+  active: {
+    type: Boolean,
+    default: true,
+  },
+  inCart: String,
 });
 
 orderSchema.pre(/^find/, function (next) {

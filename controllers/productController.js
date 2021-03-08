@@ -1,4 +1,5 @@
 const productModel = require("../models/productModel");
+const reviewModel = require("../models/reviewModel");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const factory = require("./handleFactory");
@@ -59,4 +60,32 @@ exports.AddDiscount = catchAsync(async (req, res, next) => {
     success: true,
     discount: newDoc,
   });
+});
+
+exports.calculeRatings = catchAsync(async (req, rse, next) => {
+  let reviewData = await reviewModel.find();
+
+  if (reviewData) {
+    let ratingsQuantity;
+    let ratingsAverage;
+    reviewData.forEach(async (elm) => {
+      let productData = await productModel.findById(elm.product);
+
+      if (productData) {
+        ratingsQuantity = productData.reviews.length;
+        let ratingsTotal = 0;
+        productData.reviews.forEach((elm) => {
+          ratingsTotal = ratingsTotal + elm.rating;
+        });
+
+        ratingsAverage = ratingsTotal / ratingsQuantity;
+        productData.ratingsQuantity = ratingsQuantity;
+        productData.ratingsAverage = ratingsAverage;
+        await productData.save();
+      } else {
+        next(null);
+      }
+    });
+    next();
+  }
 });

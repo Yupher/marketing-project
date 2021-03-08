@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require("uuid");
 const cartModel = require("../models/cartModel");
 const wishListModel = require("../models/whishListModel");
 const AppError = require("../utils/appError");
@@ -5,6 +6,8 @@ const catchAsync = require("../utils/catchAsync");
 const factory = require("./handleFactory");
 const productModel = require("../models/productModel");
 const orderModel = require("../models/orderModel");
+const User = require("../models/userModel");
+const vendor = require("../models/vendorModel");
 
 // cart will be created automatically when user signup these three following controllers are for developers
 exports.getAllCarts = factory.getAll(cartModel);
@@ -36,7 +39,6 @@ exports.addItem = catchAsync(async (req, res, next) => {
   } else if (quantity < 1) {
     return next(new AppError("Quantity is not valid.", 404));
   }
-
 
   cartData.products.push({ product: req.params.id, quantity, coupon });
 
@@ -106,7 +108,6 @@ exports.DeleteAllItems = catchAsync(async (req, res, next) => {
   });
 });
 
-
 //move cart items to wishlist
 exports.moveToWishList = catchAsync(async (req, res, next) => {
   let cartData = await cartModel.findOne({ user: req.user._id });
@@ -150,15 +151,12 @@ exports.moveToWishList = catchAsync(async (req, res, next) => {
   );
   return res.status(200).json({
     success: true,
-    document: cartData
+    document: cartData,
   });
 });
 
-
 //purchase All cart items
 exports.purchaseAll = catchAsync(async (req, res, next) => {
-
-
   const cartData = await cartModel.findOne({ user: req.user._id });
 
   //check if the cart exists in the data base
@@ -173,18 +171,19 @@ exports.purchaseAll = catchAsync(async (req, res, next) => {
     return next(new AppError("Please, Add to cart before buying.", 404));
   }
 
-
   //concatenate the sames products
   for (let i = 0; i < products.length; i++) {
     for (let j = i + 1; j < products.length; j++) {
       // if the same product is added mutiple times , it will save one with some of the quantities and delete the others
-      if (products[i].product._id.toString() === products[j].product._id.toString()) {
+      if (
+        products[i].product._id.toString() ===
+        products[j].product._id.toString()
+      ) {
         products[i].quantity = products[i].quantity + products[j].quantity;
         products[j].quantity = 0;
       }
     }
   }
-
 
   let finalProds = [];
 
@@ -195,10 +194,8 @@ exports.purchaseAll = catchAsync(async (req, res, next) => {
     }
   });
 
-
   // check before buy
   for (let i = 0; i < finalProds.length; i++) {
-
     // check quantities
     if (finalProds[i].quantity > finalProds[i].product.quantity) {
       return next(new AppError("Quantity of this product is insufisant.", 404));
@@ -206,19 +203,25 @@ exports.purchaseAll = catchAsync(async (req, res, next) => {
 
     // check double coupon code
     for (let j = 0; j < finalProds.length; j++) {
-      if (i !== j && finalProds[i].coupon && finalProds[j].coupon && finalProds[i].coupon._id.toString() === finalProds[j].coupon._id.toString()) {
-        return next(
-          new AppError(
-            "You cannot use coupon two time.",
-            404
-          )
-        );
+      if (
+        i !== j &&
+        finalProds[i].coupon &&
+        finalProds[j].coupon &&
+        finalProds[i].coupon._id.toString() ===
+          finalProds[j].coupon._id.toString()
+      ) {
+        return next(new AppError("You cannot use coupon two time.", 404));
       }
     }
 
     // coupon multi order
     if (finalProds[i].coupon && finalProds[i].quantity > 1) {
-      return next(new AppError("You can not use coupon on more than 1 quantity of the product.", 404));
+      return next(
+        new AppError(
+          "You can not use coupon on more than 1 quantity of the product.",
+          404
+        )
+      );
     }
 
     // check valid coupon
@@ -236,31 +239,27 @@ exports.purchaseAll = catchAsync(async (req, res, next) => {
         return next(new AppError("Coupon has expired.", 404));
       }
     }
-
   }
-
 
   // buy everything
   finalProds.forEach(async (elm) => {
-
+    let id = uuidv4();
     let newOrders = {
       product: elm.product._id,
       quantity: elm.quantity,
       coupon: elm.coupon,
       adressFirstLine: req.body.adressFirstLine,
       paymentMethod: req.body.paymentMethod,
+      inCart: id,
     };
-
+    let user = (await User.findOne({})) || (await vendor.findOne({}));
     await orderModel.create(newOrders);
   });
-
 
   // delete cart
 
   cartData.products = [];
-  await cartData.save()
-
+  await cartData.save();
 
   return res.status(200).json({ success: true });
 });
-

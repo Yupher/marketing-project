@@ -225,9 +225,12 @@ exports.permitedTo = (Model, params) =>
       id = req.params.id;
     }
     const data = await Model.findById(id);
-
     if (!data) {
       return next(new AppError("Data requested not found", 404));
+    }
+
+    if (params && params.addedBy) {
+      data.user._id = data.addedBy;
     }
 
     if (

@@ -9,25 +9,27 @@ router.use(authController.protect);
 //All Review
 router.route("/").get(reviewController.getAllReviews);
 
+router
+  .route("/me/:id")
+  .delete(
+    authController.protect,
+    authController.permitedTo(reviewModel),
+    reviewController.deleteReview
+  );
+
 //individual Review
 router
   .route("/:id")
   .get(reviewController.getReview)
-  .post(
-    authController.protect,
-    authController.restrictTo("client", "admin"),
-    reviewController.createReview
-  )
+  .post(authController.protect, reviewController.createReview)
   .patch(
     authController.protect,
-    authController.restrictTo("client"),
     authController.permitedTo(reviewModel),
     reviewController.updateReview
   )
   .delete(
     authController.protect,
-    authController.restrictTo("client", "admin"),
-    authController.permitedTo(reviewModel),
+    authController.restrictTo("admin"),
     reviewController.deleteReview
   );
 

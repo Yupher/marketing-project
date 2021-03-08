@@ -5,19 +5,20 @@ const reviewRouter = require("./reviewRoute");
 const productModel = require("../models/productModel");
 const router = express.Router();
 
-router.use("/:productId/reviews", reviewRouter);
+//router.use("/:productId/reviews", reviewRouter);
 
 router
   .route("/all")
   .get(
     authController.protect,
     authController.restrictTo("admin"),
+    productController.calculeRatings,
     productController.getAllProducts
   );
 
 router
   .route("/")
-  .get(productController.getAllProductsActive)
+  .get(productController.calculeRatings, productController.getAllProductsActive)
   .post(
     authController.protect,
     authController.restrictTo("vendor"),
@@ -37,7 +38,7 @@ router
 
 router
   .route("/:id")
-  .get(productController.getProduct)
+  .get(productController.calculeRatings, productController.getProduct)
   .patch(
     authController.protect,
     authController.restrictTo("vendor"),

@@ -29,6 +29,10 @@ const couponSchema = new mongoose.Schema({
     required: [true, "Coupon must have a period."],
     type: Number,
   },
+  active: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 /* couponSchema.index({ product: 1, user: 1 }, { unique: true }); */

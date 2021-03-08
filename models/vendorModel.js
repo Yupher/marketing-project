@@ -44,6 +44,7 @@ const vendorSchema = new mongoose.Schema({
     type: Boolean,
     default: undefined,
   },
+  cartBuy: [String],
 });
 
 vendorSchema.pre(/^find/, function (next) {

@@ -3,6 +3,7 @@ const productModel = require("../models/productModel");
 const orderController = require("../controllers/orderController");
 const authController = require("../controllers/authController");
 const { checkIfProductExist } = require("../controllers/orderController");
+const orderModel = require("../models/orderModel");
 
 const router = express.Router();
 // router.use(authController.protect);
@@ -28,13 +29,26 @@ router
     orderController.getVendorOrders
   );
 
+router
+  .route("/me/:id")
+  .get(
+    authController.protect,
+    authController.restrictTo("vendor"),
+    authController.permitedTo(orderModel, { addedBy: true }),
+    orderController.getVendorOrders
+  );
+
 // This route is exclusif to admins
 router
   .route("/:id")
-  .get(orderController.getOrder)
+  .get(
+    authController.protect,
+    authController.restrictTo("admin"),
+    orderController.getOrder
+  )
   .patch(
     authController.protect,
-    authController.restrictTo("vendor"),
+    authController.restrictTo("admin"),
     orderController.updateOrder
   )
   .delete(
