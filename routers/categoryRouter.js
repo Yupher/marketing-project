@@ -15,6 +15,16 @@ router
   );
 
 router
+  .route("/order/:id")
+  .get(
+    authController.protect,
+    authController.restrictTo("admin"),
+    categoryController.categoryOrders
+  );
+
+router.route("/products/:id").get(categoryController.categoryProducts);
+
+router
   .route("/:id")
   .get(categoryController.getCategory)
   .patch(

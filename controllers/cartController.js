@@ -241,9 +241,9 @@ exports.purchaseAll = catchAsync(async (req, res, next) => {
     }
   }
 
+  let id = uuidv4();
   // buy everything
   finalProds.forEach(async (elm) => {
-    let id = uuidv4();
     let newOrders = {
       product: elm.product._id,
       quantity: elm.quantity,
@@ -252,10 +252,14 @@ exports.purchaseAll = catchAsync(async (req, res, next) => {
       paymentMethod: req.body.paymentMethod,
       inCart: id,
     };
-    let user = (await User.findOne({})) || (await vendor.findOne({}));
+
     await orderModel.create(newOrders);
   });
+  let user =
+    (await User.findById(req.user._id)) ||
+    (await vendor.findById(req.user._id));
 
+  user.cartBuy.push(id);
   // delete cart
 
   cartData.products = [];

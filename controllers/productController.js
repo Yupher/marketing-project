@@ -78,7 +78,8 @@ exports.calculeRatings = catchAsync(async (req, rse, next) => {
           ratingsTotal = ratingsTotal + elm.rating;
         });
 
-        ratingsAverage = ratingsTotal / ratingsQuantity;
+        ratingsAverage =
+          ratingsQuantity === 0 ? 4.5 : ratingsTotal / ratingsQuantity;
         productData.ratingsQuantity = ratingsQuantity;
         productData.ratingsAverage = ratingsAverage;
         await productData.save();
